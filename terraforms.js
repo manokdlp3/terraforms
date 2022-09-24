@@ -69,9 +69,19 @@ async function mapCharacters(tokenId) {
 }
 
 async function getHTML(tokenId) {
-  contract.methods.tokenHTML(tokenId).call((err, result) => { 
-    fs.writeFileSync(`./html/${tokenId}.html`, result);    
-  });     
+  // contract.methods.tokenHTML(tokenId).call((err, result) => { 
+  //   fs.writeFileSync(`./html/${tokenId}.html`, result);
+  // });      
+  
+  return contract.methods.tokenHTML(tokenId).call();
+  // return html;
+}
+
+async function _getSeed(body) {
+  var index = body.toString().search("SEED=");
+  console.log(`Seed: ${body.toString().slice(index+5, index+9).replace( /\D/g, '')}`);
+  var rindex = body.toString().search("RESOURCE=");
+  console.log(`Resource: ${body.toString().slice(rindex+9, rindex+14).replace( /\D/g, '')}`);
 }
 
 async function getPreviewHTML(tokenId, newMapping) {
@@ -83,39 +93,81 @@ async function getPreviewHTML(tokenId, newMapping) {
 
 async function getCharacterSet(tokenId) {
   // return await contract.methods.tokenSupplementalData(tokenId).call();
-  var z = await contract.methods.tokenSupplementalData(tokenId).call();
-  // console.log(e.characterSet);
-  return z.characterSet;
+  var e = await contract.methods.tokenSupplementalData(tokenId).call();
+  return e.characterSet;
+  // return z.characterSet;
   // console.log(`${e[0]},${e[5]},${e[0%9]}`);
 }
 
+async function getAttributes(tokenId) {
+  var attributes = await contract.methods.tokenSupplementalData(tokenId).call();
+  console.log(`Level: ${attributes.level}`);
+  console.log(`Coordinates: ${attributes.xCoordinate}, ${attributes.yCoordinate}`);
+  console.log(`Elevation: ${attributes.elevation}`);
+  console.log(`Zone: ${attributes.zoneName}`);
+  console.log(`Zone Colors: ${attributes.zoneColors}`);
+  console.log(`Character Set: ${attributes.characterSet}`);
+  _getSeed(await getHTML(tokenId));
+  // return z.characterSet;
+  // console.log(`${e[0]},${e[5]},${e[0%9]}`);
+  // console.log(attributes);
+  // process.exit(0);
+}
+
 async function previewDream(tokenId, mapping) {
+  getAttributes(tokenId);
   let h = await getPreviewHTML(tokenId, mapping);
   contract.methods.tokenHTML(tokenId).call((err, result) => { 
     // var s = result.toString().search("<div\ class='r'>");
     var s = result.toString().search("<p class");
     var e = result.toString().search("</div>");    
     
-    var index = result.toString().search("SEED=");
+    // var index = result.toString().search("SEED=");
     // console.log(`${tokenId}: ${result.toString().slice(index+5, index+9).replace( /\D/g, '')}`);
-    console.log(`SEED = ${result.toString().slice(index+5, index+9).replace( /\D/g, '')}`);
-    var rindex = result.toString().search("RESOURCE=");
-    console.log(`RESOURCE = ${result.toString().slice(rindex+9, rindex+14).replace( /\D/g, '')}`);
+    // console.log(`SEED = ${result.toString().slice(index+5, index+9).replace( /\D/g, '')}`);
+    // var rindex = result.toString().search("RESOURCE=");
+    // console.log(`RESOURCE = ${result.toString().slice(rindex+9, rindex+14).replace( /\D/g, '')}`);
 
     // console.log(`start at ${s} and end at ${e}`);
     // console.log(result.toString().slice(s, s+20));
     // console.log(result.toString().slice(e, e+10));
     let output = result.toString().substring(0, s) + h + result.toString().substring(e, result.toString().length);
 
+     var mindex = result.toString().search("MODE=");
+     var mode = Number.parseInt(result.toString().slice(mindex+5, mindex+6)) == 3? 4 : 2;
+     console.log(`NEW MODE = ${mode}`);
+
     // fs.writeFileSync(`./terraforms/html/${tokenId}.html`, output.replace(/MODE=\d/,"MODE=2"));    
-    fs.writeFileSync(`./html/test.html`, output.replace(/MODE=\d/,"MODE=2"));
+    fs.writeFileSync(`./html/test.html`, output.replace(/MODE=\d/,`MODE=${mode}`));
   });  
 }
 
 module.exports = {
-  previewDream: previewDream,
-  getHTML: getHTML,
-  getCharacterSet: getCharacterSet
+  previewDream, getHTML, getCharacterSet, getAttributes
 }
 
-// getCharacterSet(10);
+// const readline = require('readline');
+// const rl = readline.createInterface({
+//   input: process.stdin,
+//   output: process.stdout
+// });
+
+// let args = process.argv.slice(2);
+// let t = args[0] != null ? args[0] : 1349;
+
+// if (args[0] != null) {
+//   getAttributes(args[0]);
+// } else {
+//   rl.question('Enter token id: ', (token) => {
+//     if (token > 0) getAttributes(token);
+//   });
+
+//   rl.on('close', () => {
+//     console.log('\n Closing...');
+//     process.exit(0);
+//   });
+// }
+
+// getCharacterSet(171);
+// getHeightIndices(6289);
+// getHTML(171);
